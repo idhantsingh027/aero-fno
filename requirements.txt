@@ -1,0 +1,25 @@
+# Deep Flow Prediction — FNO project
+# Python 3.10 | PyTorch 2.10 | neuralop 2.0
+# Compatible with: Mac M4 (MPS), Windows/Colab/Kaggle (CUDA), CPU fallback
+
+# Core deep learning
+torch==2.10.0
+torchvision==0.21.0
+
+# Neural Operator library (import as 'neuralop')
+neuralop==2.0.0
+
+# Scientific computing
+numpy==1.26.4
+scipy==1.13.1
+
+# Visualization
+matplotlib==3.9.2
+
+# Progress bars
+tqdm==4.66.5
+
+# Notebook support
+jupyter==1.1.1
+ipykernel==6.29.5
+ipywidgets==8.1.5
