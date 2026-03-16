@@ -1,0 +1,39 @@
+# Dataset — never commit (too large, ~3GB)
+data/
+data_6k.tar.gz
+data_6k/
+
+# TUM reference repo — not part of this project
+Deep-Flow-Prediction/
+
+# Generated outputs — reproducible, skip committing
+norm_stats.npy
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+aero/
+venv/
+env/
+.venv/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
