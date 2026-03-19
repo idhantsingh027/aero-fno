@@ -59,13 +59,13 @@ cd aero-fno
 **Windows (Command Prompt):**
 ```cmd
 python -m venv aerofno
-aero\Scripts\activate
+aerofno\Scripts\activate
 ```
 
 **Windows (PowerShell):**
 ```powershell
 python -m venv aerofno
-.\aero\Scripts\Activate.ps1
+.\aerofno\Scripts\Activate.ps1
 ```
 
 ### 3. Install dependencies
