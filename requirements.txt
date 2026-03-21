@@ -6,8 +6,10 @@
 torch==2.10.0
 torchvision==0.21.0
 
-# Neural Operator library (import as 'neuralop')
-neuralop==2.0.0
+# Neural Operator library
+# Install via: pip install neuraloperator
+# (neuralop==2.0.0 on PyPI is fake — install from source)
+neuraloperator @ git+https://github.com/neuraloperator/neuraloperator.git
 
 # Scientific computing
 numpy==1.26.4
