@@ -45,17 +45,22 @@ The dataset spans Reynolds numbers from 10,000 to 900,000 (90× range), causing 
 ```
 aero-fno/
 ├── 📓 Notebooks
-│   ├── stage1_explore.ipynb              # Data exploration & pipeline validation
-│   ├── stage2_v3_fno_train.ipynb         # FNO v3 training
-│   ├── stage2_v5_surface_weighted_1.ipynb # FNO v5 training (part 1)
-│   ├── stage2_v5_surface_weighted_2.ipynb # FNO v5 training (part 2)
-│   ├── stage3_evaluation.ipynb           # v3 evaluation on test set
-│   ├── stage3_evaluation_v5.ipynb        # v3 vs v5 comparison, ablation study
-│   └── stage4_inverse_design.ipynb       # Inverse design demonstration
+│   ├── stage1_explore.ipynb                 # Data exploration & pipeline validation
+│   ├── stage2_v3_fno_train.ipynb            # FNO v3 training
+│   ├── stage2_v5_surface_weighted_1.ipynb   # FNO v5 training (part 1)
+│   ├── stage2_v5_surface_weighted_2.ipynb   # FNO v5 training (part 2)
+│   ├── stage3_evaluation.ipynb              # v3 evaluation on test set
+│   ├── stage3_evaluation_v5.ipynb           # v3 vs v5 comparison, ablation study
+│   └── stage4_inverse_design.ipynb          # Inverse design demonstration
 │
-├── 📁 evaluation_v5/                     # Generated figures
+├── 📁 evaluation_v5/                        # Generated figures
 │   ├── paper_summary_figure.png
 │   ├── predictions_cp.png
+│   └── ...
+│
+├── 📁 inverse_design/                       # Generated figures
+│   ├── flow_comparison.png
+│   ├── geometry_comparison.png
 │   └── ...
 │
 ├── requirements.txt
