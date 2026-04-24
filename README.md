@@ -53,6 +53,8 @@ The **Fourier Neural Operator** (Li et al., ICLR 2021) is a neural network archi
 ### Why Physics-Based Normalization?
 The dataset spans Reynolds numbers from 10,000 to 900,000 (a 90× range), causing raw pressure values to vary by ~100×. Physics-based normalization (Cp, u\*, v\*) produces values ~O(1) regardless of Re, making learning tractable with a **single model** across the entire Re range — no retraining per flow condition required.
 
+**Literature evidence:** Thuerey et al. (2020) demonstrated that raw, unnormalized fluid data leads to massive prediction errors (average error of 291.34). Converting variables into dimensionless forms and removing the pressure null space "flattens the space of solutions, and simplifies the task for the neural network," reducing errors to 0.0136 — a >20,000× improvement. Our normalization strategy follows this established best practice across the full 90× Reynolds range.
+
 ### Why Standard L2 Loss Fails at the Surface
 Approximately 95% of a 128×128 grid represents far-field flow where Cp ≈ 0 — trivially easy to predict. Only ~5% of pixels lie at the aerodynamically critical airfoil surface, where pressure coefficients directly determine lift and drag. A model trained with standard L2 loss over-optimizes for the easy far-field, resulting in surface Cp errors exceeding 143% (FNO v3). Our surface-weighted loss corrects this via morphological boundary extraction.
 
@@ -167,9 +169,11 @@ All metrics use **relative L2 error** on 90 held-out test samples. Note that Thu
 
 Surface Cp error is the primary engineering metric — it governs lift and drag prediction accuracy.
 
-#### Resolution Generalization
+#### Resolution Generalization (Zero-Shot Super-Resolution)
 
-The FNO is trained at 128×128 and evaluated zero-shot at other resolutions (a core FNO property from Li et al., 2021):
+A key property of the FNO architecture is **discretization-invariance**: because FNOs parameterize the integral kernel directly in the continuous Fourier space, they approximate the true mathematical operator independent of the grid. Unlike standard CNNs, which are tied to their training discretization and whose errors grow if the resolution changes, FNOs maintain consistent error rates across different mesh densities — enabling **zero-shot super-resolution** (Li et al., 2021).
+
+The FNO v5 is trained at 128×128 and evaluated zero-shot at other resolutions:
 
 | Resolution | Cp Error | u\* Error | v\* Error | Notes |
 |------------|----------|-----------|-----------|-------|
@@ -178,7 +182,9 @@ The FNO is trained at 128×128 and evaluated zero-shot at other resolutions (a c
 | 256×256 | 22.3% | 5.2% | 8.8% | ✅ Good |
 | 512×512 | 83.3% | 21.3% | 42.4% | ⚠️ Degrades (spectral aliasing) |
 
-Degradation at 512×512 is expected: the model's 64 Fourier modes represent a small fraction of the 512-point grid, causing spectral aliasing artifacts at fine spatial scales. Adaptive mode scaling is a direction for future work.
+**Why 64²–256² works:** The model smoothly generalizes across a 4× resolution range because the learned spectral representation captures the dominant physical modes (pressure gradients, boundary layers, wake structures) that persist across discretizations.
+
+**Why 512² degrades:** The fixed truncation of Fourier modes (k_max = 64) used during training is sufficient for capturing macroscopic flow features and boundary layers up to 256×256 resolution. However, at 512×512, the 64 learned modes represent only 12.5% of the available spectral bandwidth, introducing high-frequency spatial components that exceed the bandwidth of the learned latent spectral representation. This manifests as spectral aliasing artifacts at fine spatial scales. Future work may require dynamically scaling k_max or implementing multi-scale coordinate embeddings to resolve extreme-fidelity grids.
 
 #### Computational Cost Comparison
 
@@ -346,11 +352,27 @@ There is a significant trend in recent literature toward complex methods to hand
 
 **Our position:** This architecture **embraces simplicity for the sake of extreme speed.** Graphs suffer from severe computational heaviness and memory limits on large meshes. By keeping the data formatted as a 128×128 image grid, FNO v5 maintains a blazing fast inference time of ~34 ms. The traditional weakness of Cartesian grids — stair-stepping and poor boundary adherence — is overcome entirely through the novel loss landscape, rather than altering the core architecture.
 
-### C. Gradient-Free Inverse Design Novelty
+### C. Gradient-Free Inverse Design — An Established Best Practice
 
-Many papers attempt to use auto-differentiation of neural networks for shape optimization (e.g., Geo-FNO uses end-to-end gradient-based optimization). However, DeepONet researchers (Shukla et al.) heavily relied on external optimizers (Dakota, SciPy dual-annealing, genetic algorithms) because relying purely on network gradients leads to non-physical local minima.
+While neural network auto-differentiation is theoretically appealing for shape optimization, relying on network gradients often leads to non-physical local minima or unstable deformations. This is not merely a limitation of our approach — it is a recognized challenge across the field.
 
-**Our approach:** FNO gradients are mathematically unusable for physical optimization due to adversarial failure modes. By utilizing the FNO strictly as a rapid forward evaluator (34 ms), we possess the computational speed to perform a **gradient-free geometric search** (scaling, translation, thickness). Optimizing against the wake deficit (as a drag proxy grounded in the momentum deficit theorem) is a physics-compliant engineering solution that bypasses the "black-box" gradient failures of other deep learning models.
+**Literature support:** In the DeepONet paper for airfoil shape optimization (Shukla et al.), the authors integrated their neural operator with an external optimizer called "Dakota." To achieve shape optimization, they specifically chose **derivative-free approaches** (Efficient Global Optimization/EGO algorithm, SciPy dual-annealing) to avoid tuning fragile hyperparameters and to safely navigate the bounds of feasible geometric regions. Similarly, Geo-FNO's end-to-end gradient-based inverse design (Li et al., 2023) required careful latent-space constraints to prevent non-physical deformations.
+
+**Our approach:** Consistent with these recent neural operator optimization frameworks, our approach deliberately **decouples the forward evaluation from the optimization loop.** By using FNO v5 strictly as a rapid ~34 ms forward surrogate, we enable a highly stable, gradient-free geometric search over transformations (scaling, translation, thickness bias) to minimize wake deficit. This ensures all explored geometries remain physically manufacturable by construction — a guarantee that pure gradient-based methods cannot provide.
+
+### D. FNO Global Context vs. GNN Locality
+
+Recent graph-based surrogates face a fundamental architectural limitation: **locality.** In Graph Neural Networks, any representation of the airfoil shape cannot be propagated beyond the few-hop neighbors of the surface mesh points. This means the wake region (far-field) doesn't "know" what the airfoil surface looks like without expensive multi-hop message passing. The GeoMPNN authors (Helwig et al., 2024) explicitly address this by engineering a complex SURF2VOL bipartite graph with specialized coordinate embeddings — a significant engineering effort just to overcome the locality constraint.
+
+**Our advantage:** The FNO v5 architecture inherently processes **global spatial context.** Because the Fast Fourier Transform integrates information across the entire domain simultaneously, the boundary physics learned via the surface-weighted loss instantaneously influence the wake and far-field predictions. There is no need for complex spatial routing mechanisms, multi-hop message passing, or bipartite graph construction. The FFT provides global coupling as a native architectural property.
+
+### E. Resolution Generalization & Known Limitations
+
+The FNO's capacity for **zero-shot super-resolution** is a core differentiator against CNN-based and GNN-based approaches. Traditional CNNs have errors that grow if the resolution changes because they learn discrete convolutional filters. FNOs parameterize the integral kernel directly in the continuous Fourier space, ensuring discretization-invariant approximation of the underlying operator.
+
+**Demonstrated:** FNO v5 smoothly generalizes from 64×64 to 256×256 evaluation grids without retraining, maintaining consistent error rates across a 4× resolution range.
+
+**Known limitation (512×512):** Significant degradation is observed at 512×512 resolution. This arises from the fixed truncation of Fourier modes (k_max = 64) used during training; while sufficient for capturing macroscopic flow features up to moderate resolution, extreme super-resolution introduces high-frequency spatial components that exceed the bandwidth of the learned spectral representation. Future iterations may require dynamically scaling k_max or implementing multi-scale coordinate embeddings to resolve extreme-fidelity grids.
 
 ---
 
